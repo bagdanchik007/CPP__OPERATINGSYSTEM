@@ -24,7 +24,7 @@
     <ClInclude Include="include\task.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="include\Scheduler.h">
+    <ClInclude Include="include\scheduler.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,7 +35,7 @@
     <ClCompile Include="scr\task.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="scr\Scheduler.cpp">
+    <ClCompile Include="scr\scheduler.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="scr\vmm.cpp">
