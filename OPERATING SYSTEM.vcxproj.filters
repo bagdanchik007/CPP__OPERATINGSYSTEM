@@ -41,5 +41,15 @@
     <ClCompile Include="scr\vmm.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="scr\oc_main.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="scr\context_switch.S" />
+    <None Include="scr\boot.S" />
+    <None Include="cfg_oc\grub.cfg" />
+    <None Include="cfg_oc\Makefile" />
+    <None Include="scr\linker.ld" />
   </ItemGroup>
 </Project>

@@ -130,10 +130,18 @@
     <ClInclude Include="include\vmm.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="scr\oc_main.cpp" />
     <ClCompile Include="scr\pmm.cpp" />
     <ClCompile Include="scr\scheduler.cpp" />
     <ClCompile Include="scr\task.cpp" />
     <ClCompile Include="scr\vmm.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cfg_oc\grub.cfg" />
+    <None Include="cfg_oc\Makefile" />
+    <None Include="scr\boot.S" />
+    <None Include="scr\context_switch.S" />
+    <None Include="scr\linker.ld" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
