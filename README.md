@@ -1,97 +1,106 @@
-# OPERATING SYSTEM
-# Memory Manager, Process Management & Scheduler (x86_64)
+# Hobby x86_64 Kernel
+
+Ein monolithischer Betriebssystemkern für x86_64, geschrieben in freistehendem C++ und Assembly – von Boot-Prozess bis präemptivem Multitasking.
+
+## Features
+
+- **Multiboot2-kompatibler Boot-Prozess** – Übergang von 32-bit Protected Mode zu 64-bit Long Mode
+- **Physical Memory Manager** – Bitmap-basierter Page Frame Allocator
+- **Virtual Memory Manager** – x86_64 4-Level Paging (PML4 → PDPT → PD → PT)
+- **GDT + TSS** – vollständige Segment-Deskriptoren inkl. Task State Segment für spätere Ring0/Ring3-Wechsel
+- **IDT + Exception Handling** – alle 32 CPU-Exceptions abgefangen
+- **PIC-Remapping** – Hardware-IRQs sauber von CPU-Exceptions getrennt
+- **PIT-Timer** – konfigurierbarer periodischer Interrupt
+- **Präemptiver Round-Robin-Scheduler** – automatischer Task-Wechsel per Timer-Interrupt
+- **Kontextwechsel in x86_64 Assembly** – vollständige Register-Sicherung/-Wiederherstellung
+
+## Architektur
+
+```
+Boot (GRUB, Multiboot2)
+   │
+   ▼
+boot.S — Protected Mode → Long Mode
+   │
+   ▼
+kernel_main()
+   │
+   ├── gdt_init()      GDT + TSS laden
+   ├── idt_init()      256 Interrupt-Vektoren registrieren
+   ├── pic_remap()      IRQs auf 0x20-0x2F verschieben
+   ├── pit_init(100Hz)  Timer konfigurieren
+   │
+   ├── pmm_init()       Physical Memory Manager
+   ├── scheduler_init() Round-Robin Scheduler
+   │
+   └── sti              Interrupts aktivieren → Preemption läuft
+```
 
 ## Projektstruktur
+
 ```
-cfg_os/
-├── Makefile
-├── grub.cfg
-├── README.md
-│
+kernel_os/
+├── Makefile              Build-System (Cross-Compile + ISO via GRUB)
+├── grub.cfg              Bootloader-Konfiguration
 ├── include/
-│   ├── pmm.h
-│   ├── vmm.h
-│   ├── task.h
-│   └── scheduler.h
-│
+│   ├── pmm.h             Physical Memory Manager
+│   ├── vmm.h             Virtual Memory Manager
+│   ├── task.h            Process Control Block
+│   ├── scheduler.h       Round-Robin Scheduler
+│   ├── gdt.h             Global Descriptor Table + TSS
+│   ├── idt.h             Interrupt Descriptor Table
+│   ├── pic.h             8259 PIC
+│   ├── pit.h             Programmable Interval Timer
+│   └── interrupts.h      Exception/IRQ-Handler-Deklarationen
 └── src/
-    ├── boot.S
-    ├── linker.ld
-    ├── kernel_main.cpp
-    ├── pmm.cpp
-    ├── vmm.cpp
-    ├── task.cpp
-    ├── scheduler.cpp
-    └── context_switch.S
+    ├── boot.S             Multiboot2 + Long-Mode-Transition
+    ├── linker.ld          Speicher-Layout
+    ├── kernel_main.cpp    Einstiegspunkt, initialisiert alle Subsysteme
+    ├── pmm.cpp / vmm.cpp
+    ├── task.cpp / scheduler.cpp / context_switch.S
+    ├── gdt.cpp / gdt_flush.S
+    ├── idt.cpp / idt_load.S / isr_stubs.S
+    ├── pic.cpp / pit.cpp
+    └── interrupts.cpp     exception_handler() + irq_handler()
 ```
 
-## Wie der Timer-Interrupt den Scheduler triggert
+## Build & Ausführen
 
-Der Ablauf, den du in deinem Interrupt-Setup (IDT + PIC/APIC) implementieren musst:
+**Voraussetzungen** (Ubuntu/Debian):
+```bash
+sudo apt install build-essential nasm xorriso grub-pc-bin grub-common qemu-system-x86
+```
 
-1. **PIT oder APIC-Timer konfigurieren**, damit er periodisch (z.B. alle 10 ms)
-   einen Interrupt auf Vektor `IRQ0` (klassisch) oder einen APIC-Timer-Vektor
-   auslöst.
+**Bauen und in QEMU starten:**
+```bash
+make run
+```
 
-2. **Interrupt-Handler in der IDT eintragen** (typischerweise als
-   `naked`-Assembly-Stub, der zuerst *alle* Register auf den Stack rettet,
-   die von einem C++-Aufruf potenziell zerstört würden — nicht zu verwechseln
-   mit dem Task-Context-Switch! Das ist ein separater, kurzlebiger Save/Restore
-   nur für die Interrupt-Behandlung selbst):
+**Nur die ISO bauen:**
+```bash
+make iso
+```
 
-   ```
-   timer_interrupt_stub:
-       ; alle Register sichern (pusha-Äquivalent unter x86_64)
-       call timer_interrupt_handler   ; C++ Funktion
-       ; alle Register wiederherstellen
-       ; End-of-Interrupt (EOI) an PIC/APIC senden!
-       iretq
-   ```
+**Aufräumen:**
+```bash
+make clean
+```
 
-3. **In `timer_interrupt_handler()` (C++) einfach `scheduler_tick()` aufrufen.**
-   Das ist die gesamte Kopplung zwischen Timer und Scheduler:
+## Technische Details & bewusste Design-Entscheidungen
 
-   ```cpp
-   extern "C" void timer_interrupt_handler() {
-       // EOI senden NICHT vergessen (sonst kommen nie wieder Timer-IRQs!)
-       pic_send_eoi(0);
-       scheduler_tick();
-   }
-   ```
+- **Kein User-Mode bisher** – aktuell laufen nur Kernel-Threads. GDT/TSS sind aber bereits vorbereitet für Ring3-Support.
+- **Identity-Mapping im Kernel** – physischer Speicher wird 1:1 gemappt (vereinfachtes Modell für die frühe Entwicklungsphase; ein Higher-Half-Direct-Map-Ansatz wäre der nächste Ausbauschritt).
+- **Kooperative vs. präemptive Umschaltung** – der Scheduler wird automatisch alle 10ms per Timer-Interrupt getriggert (`pit_init(100)`), kann aber auch manuell über `scheduler_tick()` angestoßen werden.
+- **Kein dynamischer Heap im Kernel** – Tasks werden aus einem statischen Pool alloziert, um komplett ohne Standardbibliothek auszukommen.
 
-4. **Wichtige Falle:** `scheduler_tick()` ruft `context_switch()` auf, welches
-   per `ret` "zurückspringt" — aber eben in einen *anderen* Task hinein, der
-   selbst mitten in seinem eigenen `iretq`-Rücksprung aus einem früheren
-   Timer-Interrupt "eingefroren" war. Das bedeutet: dein Assembly-Stub für den
-   Interrupt und dein `context_switch` müssen zueinander passende
-   Stack-Layouts erzeugen, sonst landest du mit falschen Registern/Segmenten
-   in User- oder Kernel-Space. Für den Anfang (**nur Kernel-Threads, kein
-   User-Mode**) reicht das hier gezeigte einfache Modell aus PCB + `ret`-Trick
-   völlig aus.
+## Roadmap
 
-5. **Preemption vs. Kooperation:** Mit diesem Aufbau hast du bereits
-   **präemptives** Multitasking — der Scheduler kann jeden Task nach Ablauf
-   des Zeit-Slots unterbrechen, unabhängig davon, ob der Task "freiwillig"
-   aufgibt. Für den Einstieg kannst du zusätzlich eine `task_yield()`-Funktion
-   bauen, die manuell `scheduler_tick()` aufruft — nützlich zum Testen, bevor
-   der Timer-Interrupt überhaupt läuft.
+- [ ] User-Mode-Support (Ring 3) + Syscall-Interface
+- [ ] Tastatur-Treiber (IRQ1 ist bereits vorbereitet)
+- [ ] Einfaches Dateisystem
+- [ ] ELF-Loader für User-Programme
+- [ ] SMP-Support (Multi-Core)
 
-## Nächste sinnvolle Schritte
+## Motivation
 
-1. GDT + TSS aufsetzen (für sauberen Ring0/Ring3-Wechsel später)
-2. IDT + Interrupt-Stubs für Timer + Keyboard
-3. `task_yield()` für kooperatives Testen ohne Timer
-4. Erste zwei Test-Kernel-Threads, die abwechselnd etwas auf den Bildschirm
-   schreiben (klassischer "ping/pong"-Scheduler-Test)
-5. Später: User-Mode-Support (Ring 3), Syscalls, ELF-Loader
-
-## Bekannte Vereinfachungen (bewusst, für den Hobby-Einstieg)
-
-- Physischer Speicher wird im Kernel als identity-mapped angenommen
-  (`phys_to_virt` = Identität). Für einen echten Higher-Half-Kernel später
-  durch ein festes HHDM-Offset ersetzen.
-- Kernel-Stacks werden über mehrere `pmm_alloc_page()`-Aufrufe alloziert und
-  als physisch zusammenhängend angenommen — für Produktionsqualität besser
-  einzeln allozieren und explizit über `vmm_map_page()` mappen.
-- Kein Locking/Synchronisation — sobald du SMP (mehrere CPU-Kerne) willst,
-  brauchst du Spinlocks um die Ready-Queue.
+Dieses Projekt entstand, um systemnahe Konzepte praktisch zu verstehen: Speicherverwaltung, Prozess-Scheduling, Interrupt-Handling und die x86_64-Architektur auf Hardware-Ebene – ohne die Abstraktionen eines bestehenden Betriebssystems.
