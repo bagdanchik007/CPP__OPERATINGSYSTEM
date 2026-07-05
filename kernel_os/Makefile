@@ -22,10 +22,12 @@ BUILD_DIR = build
 ISO_DIR  = isodir
 
 CPP_SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
-ASM_SOURCES = $(SRC_DIR)/boot.S $(SRC_DIR)/context_switch.S
+ASM_SOURCES = $(SRC_DIR)/boot.S $(SRC_DIR)/context_switch.S \
+              $(SRC_DIR)/gdt_flush.S $(SRC_DIR)/idt_load.S $(SRC_DIR)/isr_stubs.S
 
-OBJECTS = $(BUILD_DIR)/boot.o \
-          $(BUILD_DIR)/context_switch.o \
+ASM_OBJECTS = $(patsubst $(SRC_DIR)/%.S,$(BUILD_DIR)/%.o,$(ASM_SOURCES))
+
+OBJECTS = $(ASM_OBJECTS) \
           $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(CPP_SOURCES))
 
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
@@ -38,10 +40,7 @@ all: $(ISO_FILE)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(BUILD_DIR)/boot.o: $(SRC_DIR)/boot.S | $(BUILD_DIR)
-	$(AS) $(ASFLAGS) $< -o $@
-
-$(BUILD_DIR)/context_switch.o: $(SRC_DIR)/context_switch.S | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.S | $(BUILD_DIR)
 	$(AS) $(ASFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)

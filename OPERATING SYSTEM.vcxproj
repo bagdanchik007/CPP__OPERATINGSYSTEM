@@ -124,24 +124,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\pmm.h" />
-    <ClInclude Include="include\scheduler.h" />
-    <ClInclude Include="include\task.h" />
-    <ClInclude Include="include\vmm.h" />
+    <ClInclude Include="kernel_os\include\pmm.h" />
+    <ClInclude Include="kernel_os\include\scheduler.h" />
+    <ClInclude Include="kernel_os\include\task.h" />
+    <ClInclude Include="kernel_os\include\vmm.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="scr\oc_main.cpp" />
-    <ClCompile Include="scr\pmm.cpp" />
-    <ClCompile Include="scr\scheduler.cpp" />
-    <ClCompile Include="scr\task.cpp" />
-    <ClCompile Include="scr\vmm.cpp" />
+    <ClCompile Include="kernel_os\scr\oc_main.cpp" />
+    <ClCompile Include="kernel_os\scr\pmm.cpp" />
+    <ClCompile Include="kernel_os\scr\scheduler.cpp" />
+    <ClCompile Include="kernel_os\scr\task.cpp" />
+    <ClCompile Include="kernel_os\scr\vmm.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="cfg_oc\grub.cfg" />
-    <None Include="cfg_oc\Makefile" />
-    <None Include="scr\boot.S" />
-    <None Include="scr\context_switch.S" />
-    <None Include="scr\linker.ld" />
+    <None Include="kernel_os\grub.cfg" />
+    <None Include="kernel_os\Makefile" />
+    <None Include="kernel_os\scr\boot.S" />
+    <None Include="kernel_os\scr\context_switch.S" />
+    <None Include="kernel_os\scr\linker.ld" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

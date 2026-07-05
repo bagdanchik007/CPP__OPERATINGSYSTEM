@@ -1,6 +1,10 @@
 #include "pmm.h"
 #include "task.h"
 #include "scheduler.h"
+#include "gdt.h"
+#include "idt.h"
+#include "pic.h"
+#include "pit.h"
 #include <stdint.h>
 
 // ------------------------------------------------------------
@@ -24,7 +28,22 @@ namespace {
 extern "C" void kernel_main(uint32_t multiboot_magic, uintptr_t multiboot_info_addr) {
     vga_print("Kernel gestartet - Long Mode aktiv!");
 
+    // --- Reihenfolge ist wichtig! ---
+    // 1. GDT zuerst: legt gültige Kernel-Segmente + TSS fest
+    // 2. IDT danach: braucht den Kernel-Code-Selektor aus der GDT
+    // 3. PIC remappen, BEVOR Interrupts aktiviert werden (sonst
+    //    kollidieren Hardware-IRQs mit CPU-Exceptions!)
+    // 4. PIT konfigurieren: erzeugt den periodischen Timer-Interrupt
+    // 5. Erst ganz am Schluss "sti" -> Interrupts scharf schalten
+    gdt_init();
+    idt_init();
+    pic_remap();
+    pit_init(100); // 100 Hz -> alle 10ms ein Scheduler-Tick
+
+    vga_print(" | GDT+IDT+PIC+PIT initialisiert.");
+
     // TODO: multiboot_info_addr auswerten, um die ECHTE physische
+
     // Memory Map vom Bootloader zu bekommen, statt hartkodierter Werte.
     // Für den allerersten Test reicht eine angenommene Größe:
     constexpr uint64_t ASSUMED_RAM_PAGES = 32768; // 128 MiB / 4KiB
@@ -51,11 +70,16 @@ extern "C" void kernel_main(uint32_t multiboot_magic, uintptr_t multiboot_info_a
     scheduler_add_task(task_a);
     scheduler_add_task(task_b);
 
-    // Ohne Timer-Interrupt (noch nicht gebaut) hier manuell einmal
-    // "anschieben", nur um zu sehen, dass der ersten Task startet.
+    // Ersten Task manuell anschieben (current_task ist ja noch NULL) -
+    // ab jetzt übernimmt der Timer-Interrupt automatisch alle weiteren Switches.
     scheduler_tick();
 
-    // Kernel-Idle-Loop: hier würde normalerweise "halt bis Interrupt" stehen
+    // Interrupts scharf schalten -> ab hier läuft der Timer und
+    // unterbricht/schaltet automatisch zwischen Tasks um (Preemption!).
+    asm volatile("sti");
+
+    // Kernel-Idle-Loop: CPU anhalten, bis der nächste Interrupt kommt
+    // (spart Strom, verglichen mit einer busy-loop).
     while (true) {
         asm volatile("hlt");
     }

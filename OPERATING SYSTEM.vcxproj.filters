@@ -15,41 +15,41 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\pmm.h">
+    <ClInclude Include="kernel_os\include\pmm.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="include\vmm.h">
+    <ClInclude Include="kernel_os\include\vmm.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="include\task.h">
+    <ClInclude Include="kernel_os\include\task.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="include\scheduler.h">
+    <ClInclude Include="kernel_os\include\scheduler.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="scr\pmm.cpp">
+    <ClCompile Include="kernel_os\scr\pmm.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="scr\task.cpp">
+    <ClCompile Include="kernel_os\scr\task.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="scr\scheduler.cpp">
+    <ClCompile Include="kernel_os\scr\scheduler.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="scr\vmm.cpp">
+    <ClCompile Include="kernel_os\scr\vmm.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="scr\oc_main.cpp">
+    <ClCompile Include="kernel_os\scr\oc_main.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="scr\context_switch.S" />
-    <None Include="scr\boot.S" />
-    <None Include="cfg_oc\grub.cfg" />
-    <None Include="cfg_oc\Makefile" />
-    <None Include="scr\linker.ld" />
+    <None Include="kernel_os\scr\context_switch.S" />
+    <None Include="kernel_os\scr\boot.S" />
+    <None Include="kernel_os\grub.cfg" />
+    <None Include="kernel_os\Makefile" />
+    <None Include="kernel_os\scr\linker.ld" />
   </ItemGroup>
 </Project>

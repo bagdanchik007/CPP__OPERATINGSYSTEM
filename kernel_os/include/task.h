@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include <stdint.h>
 
 // ============================================================
@@ -14,11 +13,11 @@ enum class TaskState : uint8_t {
     TERMINATED
 };
 
-// CPU-Register-Kontext für x86_64.
-// Layout ist bewusst so gewählt, dass es 1:1 zum Stack-Layout passt,
+// CPU-Register-Kontext fÃ¼r x86_64.
+// Layout ist bewusst so gewÃ¤hlt, dass es 1:1 zum Stack-Layout passt,
 // das context_switch.S beim Sichern/Wiederherstellen erzeugt (siehe unten).
 // Wir sichern hier NUR die callee-saved Register + Instruction Pointer +
-// Stack Pointer -> das reicht für einen kooperativen/Timer-Kontextwechsel,
+// Stack Pointer -> das reicht fÃ¼r einen kooperativen/Timer-Kontextwechsel,
 // da der Compiler caller-saved Register bereits vor jedem Funktionsaufruf
 // selbst sichert (System V AMD64 ABI).
 struct CpuContext {
@@ -28,7 +27,7 @@ struct CpuContext {
     uint64_t r12;
     uint64_t rbx;
     uint64_t rbp;
-    uint64_t rip;   // Rücksprungadresse (wohin nach dem Switch weitergemacht wird)
+    uint64_t rip;   // RÃ¼cksprungadresse (wohin nach dem Switch weitergemacht wird)
 };
 
 using pid_t = uint32_t;
@@ -37,31 +36,31 @@ struct Task {
     pid_t        pid;
     TaskState    state;
 
-    // Kernel-Stack für diesen Task (jeder Task hat seinen eigenen!)
-    uintptr_t    kernel_stack_base;   // unterste Adresse (für Freigabe)
+    // Kernel-Stack fÃ¼r diesen Task (jeder Task hat seinen eigenen!)
+    uintptr_t    kernel_stack_base;   // unterste Adresse (fÃ¼r Freigabe)
     uintptr_t    kernel_stack_top;    // Adresse, mit der der Stack initial startet
 
-    // Gesicherter CPU-Zustand, wenn der Task NICHT läuft.
+    // Gesicherter CPU-Zustand, wenn der Task NICHT lÃ¤uft.
     // rsp zeigt auf die Stelle im Kernel-Stack, wo CpuContext liegt.
     uint64_t     saved_rsp;
 
     // Adressraum dieses Tasks (physische Adresse des PML4)
     uintptr_t    pml4_phys;
 
-    // Intrusive Linked List für die Ready-Queue des Schedulers
-    Task* next;
+    // Intrusive Linked List fÃ¼r die Ready-Queue des Schedulers
+    Task*        next;
 
-    // Optional: Name fürs Debugging
+    // Optional: Name fÃ¼rs Debugging
     char         name[32];
 };
 
 extern "C" {
 
-    // Initialisiert einen neuen Kernel-Thread:
-    // - alloziert einen Kernel-Stack
-    // - bereitet den Stack so vor, dass beim ersten context_switch()
-    //   direkt in entry_point gesprungen wird
-    // - setzt State auf READY
-    Task* task_create_kernel_thread(void (*entry_point)(), const char* name);
+// Initialisiert einen neuen Kernel-Thread:
+// - alloziert einen Kernel-Stack
+// - bereitet den Stack so vor, dass beim ersten context_switch()
+//   direkt in entry_point gesprungen wird
+// - setzt State auf READY
+Task* task_create_kernel_thread(void (*entry_point)(), const char* name);
 
 }

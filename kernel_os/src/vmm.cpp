@@ -2,11 +2,11 @@
 #include "pmm.h"
 
 // ------------------------------------------------------------
-// WICHTIGE VEREINFACHUNG f¸r dieses Hobby-OS:
+// WICHTIGE VEREINFACHUNG f√ºr dieses Hobby-OS:
 // Wir nehmen an, dass der komplette physische Speicher im Kernel
-// 1:1 (identity-mapped) oder ¸ber ein festes Offset gemappt ist,
+// 1:1 (identity-mapped) oder √ºber ein festes Offset gemappt ist,
 // sodass wir physische Adressen direkt als Zeiger dereferenzieren
-// kˆnnen. In einem echten Higher-Half-Kernel w¸rdest du hier
+// k√∂nnen. In einem echten Higher-Half-Kernel w√ºrdest du hier
 // stattdessen phys + HHDM_OFFSET rechnen.
 // ------------------------------------------------------------
 static inline page_table_t* phys_to_virt(uintptr_t phys) {
@@ -27,15 +27,15 @@ static inline VAddrIndices split_vaddr(uintptr_t v) {
     };
 }
 
-// Holt (oder erstellt bei Bedarf) die n‰chsttiefere Tabelle aus einem Entry.
+// Holt (oder erstellt bei Bedarf) die n√§chsttiefere Tabelle aus einem Entry.
 static page_table_t* get_or_create_table(page_table_t* table, uint64_t index, uint64_t flags) {
     page_table_entry_t& entry = table->entries[index];
 
     if (!(entry & PTE_PRESENT)) {
-        // Noch keine Tabelle vorhanden -> neue physische Seite daf¸r holen
+        // Noch keine Tabelle vorhanden -> neue physische Seite daf√ºr holen
         uintptr_t new_table_phys = pmm_alloc_page();
 
-        // Neue Tabelle nullen (alle Eintr‰ge "not present")
+        // Neue Tabelle nullen (alle Eintr√§ge "not present")
         page_table_t* new_table = phys_to_virt(new_table_phys);
         for (int i = 0; i < 512; i++) new_table->entries[i] = 0;
 
@@ -53,15 +53,15 @@ extern "C" uintptr_t vmm_create_address_space() {
 }
 
 extern "C" void vmm_map_page(uintptr_t pml4_phys, uintptr_t virt_addr,
-    uintptr_t phys_addr, uint64_t flags) {
+                              uintptr_t phys_addr, uint64_t flags) {
     VAddrIndices idx = split_vaddr(virt_addr);
 
     page_table_t* pml4 = phys_to_virt(pml4_phys);
     page_table_t* pdpt = get_or_create_table(pml4, idx.pml4_i, PTE_USER);
-    page_table_t* pd = get_or_create_table(pdpt, idx.pdpt_i, PTE_USER);
-    page_table_t* pt = get_or_create_table(pd, idx.pd_i, PTE_USER);
+    page_table_t* pd   = get_or_create_table(pdpt, idx.pdpt_i, PTE_USER);
+    page_table_t* pt   = get_or_create_table(pd,   idx.pd_i,   PTE_USER);
 
-    // Letzte Ebene: hier liegt die tats‰chliche physische Adresse + Flags
+    // Letzte Ebene: hier liegt die tats√§chliche physische Adresse + Flags
     pt->entries[idx.pt_i] = (phys_addr & PTE_ADDR_MASK) | flags | PTE_PRESENT;
 }
 
@@ -83,14 +83,14 @@ extern "C" void vmm_unmap_page(uintptr_t pml4_phys, uintptr_t virt_addr) {
 
     pt->entries[idx.pt_i] = 0;
 
-    // TLB f¸r diese eine Seite invalidieren, damit die CPU das alte
+    // TLB f√ºr diese eine Seite invalidieren, damit die CPU das alte
     // Mapping nicht weiter aus dem Cache verwendet.
     asm volatile("invlpg (%0)" ::"r"(virt_addr) : "memory");
 }
 
 extern "C" void vmm_switch_address_space(uintptr_t pml4_phys) {
     // CR3 laden = kompletten Adressraum wechseln (impliziert TLB-Flush,
-    // auﬂer bei PCID-Global-Pages, die wir hier nicht nutzen).
+    // au√üer bei PCID-Global-Pages, die wir hier nicht nutzen).
     asm volatile("mov %0, %%cr3" ::"r"(pml4_phys) : "memory");
 }
 
@@ -114,6 +114,6 @@ extern "C" uintptr_t vmm_translate(uintptr_t pml4_phys, uintptr_t virt_addr) {
     if (!(e4 & PTE_PRESENT)) return 0;
 
     uintptr_t page_base = e4 & PTE_ADDR_MASK;
-    uintptr_t offset = virt_addr & 0xFFF;
+    uintptr_t offset     = virt_addr & 0xFFF;
     return page_base | offset;
 }
