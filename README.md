@@ -2,20 +2,27 @@
 # Memory Manager, Process Management & Scheduler (x86_64)
 
 ## Projektstruktur
-
 ```
-kernel_os/
+cfg_os/
+├── Makefile
+├── grub.cfg
+├── README.md
+│
 ├── include/
-│   ├── pmm.h          Physical Memory Manager (Bitmap Allocator)
-│   ├── vmm.h          Virtual Memory Manager (4-Level Paging)
-│   ├── task.h         Task/PCB-Struktur + CPU-Kontext
-│   └── scheduler.h     Round-Robin Scheduler
+│   ├── pmm.h
+│   ├── vmm.h
+│   ├── task.h
+│   └── scheduler.h
+│
 └── src/
+    ├── boot.S
+    ├── linker.ld
+    ├── kernel_main.cpp
     ├── pmm.cpp
     ├── vmm.cpp
     ├── task.cpp
     ├── scheduler.cpp
-    └── context_switch.S   x86_64 Assembly für den Register-Wechsel
+    └── context_switch.S
 ```
 
 ## Wie der Timer-Interrupt den Scheduler triggert
