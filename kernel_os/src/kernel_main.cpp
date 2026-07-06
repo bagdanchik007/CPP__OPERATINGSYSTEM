@@ -14,11 +14,28 @@
 // ------------------------------------------------------------
 namespace {
     volatile uint16_t* vga_buffer = reinterpret_cast<volatile uint16_t*>(0xB8000);
+    constexpr int VGA_WIDTH = 80;
 
     void vga_print(const char* str, uint8_t color = 0x0F) {
         static int cursor = 0;
         for (int i = 0; str[i] != '\0'; i++) {
             vga_buffer[cursor++] = (color << 8) | str[i];
+        }
+    }
+
+    // Schreibt EIN Zeichen an eine feste (row, col)-Position, statt am
+    // laufenden Cursor anzuhängen. Damit können zwei Threads gleichzeitig
+    // an unterschiedlichen Stellen des Bildschirms "blinken", ohne sich
+    // gegenseitig zu überschreiben.
+    void vga_put_at(int row, int col, char c, uint8_t color) {
+        vga_buffer[row * VGA_WIDTH + col] = (color << 8) | c;
+    }
+
+    // Simple Busy-Wait-Verzögerung, rein für sichtbare Demo-Zwecke -
+    // KEIN echter Timer, nur damit man den Wechsel mit bloßem Auge sieht.
+    void busy_delay(volatile uint64_t iterations) {
+        while (iterations--) {
+            asm volatile("nop");
         }
     }
 }
@@ -85,10 +102,30 @@ extern "C" void kernel_main(uint32_t multiboot_magic, uintptr_t multiboot_info_a
     }
 }
 
-// Platzhalter-Test-Threads, bis du echte Tasks hast
+// ------------------------------------------------------------
+// Test-Threads: schreiben abwechselnd einen hochzählenden Zähler an
+// EINE feste Bildschirmposition (Zeile 3 bzw. 4). Wenn der Scheduler
+// wirklich funktioniert, siehst du beide Zähler "gleichzeitig" laufen -
+// das ist der einfachste sichtbare Beweis für Preemption ohne
+// zusätzliche Treiber (Tastatur, serielle Konsole, ...) zu brauchen.
+// ------------------------------------------------------------
 extern "C" void thread_a_entry() {
-    while (true) { /* würde z.B. "A" ausgeben */ }
+    uint8_t counter = 0;
+    while (true) {
+        char digit = '0' + (counter % 10);
+        vga_put_at(3, 0, 'A', 0x0A); // grünes "A" als Label
+        vga_put_at(3, 2, digit, 0x0A);
+        counter++;
+        busy_delay(5000000); // grob dimensioniert, damit man es mit dem Auge verfolgen kann
+    }
 }
 extern "C" void thread_b_entry() {
-    while (true) { /* würde z.B. "B" ausgeben */ }
+    uint8_t counter = 0;
+    while (true) {
+        char digit = '0' + (counter % 10);
+        vga_put_at(4, 0, 'B', 0x0C); // rotes "B" als Label
+        vga_put_at(4, 2, digit, 0x0C);
+        counter++;
+        busy_delay(5000000);
+    }
 }

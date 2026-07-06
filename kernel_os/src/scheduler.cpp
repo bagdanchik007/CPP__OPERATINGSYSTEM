@@ -36,6 +36,12 @@ extern "C" Task* scheduler_current_task() {
     return current_task;
 }
 
+extern "C" void task_yield() {
+    // Kooperativer Wechsel ist technisch dasselbe wie ein Timer-Tick -
+    // der Scheduler unterscheidet nicht, WARUM gewechselt wird.
+    scheduler_tick();
+}
+
 extern "C" void scheduler_tick() {
     // Kein Task läuft noch nicht mal -> ersten Task aus der Queue starten.
     if (!current_task) {

@@ -18,6 +18,12 @@ void scheduler_add_task(Task* task);
 // eigentlichen Kontextwechsel (context_switch) an.
 void scheduler_tick();
 
+// Freiwilliger Wechsel: ein Task ruft das selbst auf, um die CPU
+// abzugeben, ohne auf den nächsten Timer-Interrupt zu warten. Nützlich
+// zum Testen, bevor Interrupts überhaupt aktiv sind, oder wenn ein Task
+// z.B. auf I/O wartet und sinnvoll nichts anderes zu tun hat.
+void task_yield();
+
 // Gibt den aktuell laufenden Task zurück.
 Task* scheduler_current_task();
 
