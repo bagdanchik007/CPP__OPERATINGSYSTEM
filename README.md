@@ -1,4 +1,4 @@
-# Hobby x86_64 Kernel
+ Hobby x86_64 Kernel
 
 Ein monolithischer Betriebssystemkern für x86_64, geschrieben in freistehendem C++ und Assembly – von Boot-Prozess bis präemptivem Multitasking.
 
@@ -95,11 +95,17 @@ make clean
 
 ## Roadmap
 
-- [ ] User-Mode-Support (Ring 3) + Syscall-Interface
+- [x] `task_yield()` für kooperatives Testen ohne Timer-Interrupt
+- [x] Sichtbarer Scheduler-Beweis (zwei Threads schreiben live auf den Bildschirm)
 - [ ] Tastatur-Treiber (IRQ1 ist bereits vorbereitet)
+- [ ] User-Mode-Support (Ring 3) + Syscall-Interface
 - [ ] Einfaches Dateisystem
 - [ ] ELF-Loader für User-Programme
 - [ ] SMP-Support (Multi-Core)
+
+## Lizenz
+
+MIT License, siehe [LICENSE](LICENSE).
 
 ## Motivation
 
