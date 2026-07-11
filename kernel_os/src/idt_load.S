@@ -11,3 +11,5 @@
 idt_load:
     lidt (%rdi)
     ret
+
+.section .note.GNU-stack,"",@progbits

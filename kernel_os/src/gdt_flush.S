@@ -34,3 +34,5 @@ tss_flush:
     mov $0x28, %ax    # TSS-Selektor
     ltr %ax
     ret
+
+.section .note.GNU-stack,"",@progbits

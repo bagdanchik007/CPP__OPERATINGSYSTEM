@@ -10,12 +10,13 @@ AS       = g++
 LD       = ld
 
 CXXFLAGS = -ffreestanding -fno-exceptions -fno-rtti -mno-red-zone \
-           -mno-mmx -mno-sse -mno-sse2 -mcmodel=kernel -m64 -Wall -Wextra \
+           -mno-mmx -mno-sse -mno-sse2 -m64 -Wall -Wextra \
+           -fno-pic -fno-pie -fno-stack-protector -fno-builtin \
            -Iinclude -c
 
 ASFLAGS  = -c
 
-LDFLAGS  = -T src/linker.ld -nostdlib -static
+LDFLAGS  = -T src/linker.ld -nostdlib -static -no-pie
 
 SRC_DIR  = src
 BUILD_DIR = build

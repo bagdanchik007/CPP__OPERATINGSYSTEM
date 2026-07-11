@@ -42,7 +42,8 @@ namespace {
 
 // Wird von boot.S mit (Multiboot-Magic, Multiboot-Info-Pointer) aufgerufen
 // -> System V AMD64 ABI: 1. Arg = rdi, 2. Arg = rsi
-extern "C" void kernel_main(uint32_t multiboot_magic, uintptr_t multiboot_info_addr) {
+extern "C" void kernel_main([[maybe_unused]] uint32_t multiboot_magic,
+                             [[maybe_unused]] uintptr_t multiboot_info_addr) {
     vga_print("Kernel gestartet - Long Mode aktiv!");
 
     // --- Reihenfolge ist wichtig! ---

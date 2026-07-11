@@ -177,9 +177,9 @@ enable_paging:
 
 # --- Fehlerfall: Zeichencode in AL auf Bildschirm schreiben, dann anhalten ---
 error_halt:
-    mov $0x4f524f45, (0xb8000)   # "ER" in Weiß auf Rot (VGA-Textmodus)
-    mov $0x4f3a4f52, (0xb8004)   # "R:"
-    mov $0x4f204f20, (0xb8008)
+    movl $0x4f524f45, (0xb8000)   # "ER" in Weiß auf Rot (VGA-Textmodus)
+    movl $0x4f3a4f52, (0xb8004)   # "R:"
+    movl $0x4f204f20, (0xb8008)
     mov %al, (0xb800a)
     hlt
 
@@ -237,3 +237,5 @@ long_mode_start:
     jmp .hang
 
 .size _start, . - _start
+
+.section .note.GNU-stack,"",@progbits
