@@ -1,4 +1,4 @@
- Hobby x86_64 Kernel
+# Hobby x86_64 Kernel
 
 Ein monolithischer Betriebssystemkern für x86_64, geschrieben in freistehendem C++ und Assembly – von Boot-Prozess bis präemptivem Multitasking.
 
@@ -63,6 +63,22 @@ kernel_os/
     ├── pic.cpp / pit.cpp
     └── interrupts.cpp     exception_handler() + irq_handler()
 ```
+
+## Screenshots
+
+**Boot-Vorgang** (Multiboot2 → Long Mode → Subsystem-Initialisierung):
+
+![Boot](screenshots/01_boot.png)
+
+**Präemptiver Scheduler in Aktion** – zwei Kernel-Threads laufen unabhängig
+voneinander und werden automatisch per Timer-Interrupt (100 Hz) umgeschaltet.
+Der grüne Zähler (Thread A) und der rote Zähler (Thread B) laufen
+gleichzeitig weiter, ohne dass sich die Threads gegenseitig blockieren:
+
+![Scheduler läuft](screenshots/02_scheduler_running_clean_build.png)
+
+> Getestet mit: `qemu-system-x86_64 8.2.2`, gebaut mit `g++ 13` auf Ubuntu 24.04.
+> Build ist komplett warnungsfrei (`-Wall -Wextra`).
 
 ## Build & Ausführen
 
