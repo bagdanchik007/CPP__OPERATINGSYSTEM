@@ -20,6 +20,7 @@ SECTIONS
     .text ALIGN(4K) :
     {
         *(.text)
+        *(.usertext)
     }
 
     .rodata ALIGN(4K) :

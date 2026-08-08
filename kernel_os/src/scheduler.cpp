@@ -1,4 +1,5 @@
 #include "scheduler.h"
+#include "gdt.h"
 #include "vmm.h"
 
 // ------------------------------------------------------------
@@ -50,6 +51,7 @@ extern "C" void scheduler_tick() {
         ready_head = ready_head->next;
         if (!ready_head) ready_tail = nullptr;
         current_task->state = TaskState::RUNNING;
+        tss_set_kernel_stack(current_task->kernel_stack_top);
         return; // Hinweis: Der allererste "Einstieg" läuft normalerweise
                 // separat über einen expliziten context_switch(nullptr, task).
     }
@@ -73,6 +75,7 @@ extern "C" void scheduler_tick() {
 
     next_task->state = TaskState::RUNNING;
     current_task = next_task;
+    tss_set_kernel_stack(next_task->kernel_stack_top);
 
     // Adressraum wechseln, FALLS der neue Task einen eigenen hat
     // (0 = teilt sich den Kernel-Adressraum, kein Wechsel nötig).

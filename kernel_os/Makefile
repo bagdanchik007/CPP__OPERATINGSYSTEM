@@ -24,7 +24,8 @@ ISO_DIR  = isodir
 
 CPP_SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 ASM_SOURCES = $(SRC_DIR)/boot.S $(SRC_DIR)/context_switch.S \
-              $(SRC_DIR)/gdt_flush.S $(SRC_DIR)/idt_load.S $(SRC_DIR)/isr_stubs.S
+              $(SRC_DIR)/gdt_flush.S $(SRC_DIR)/idt_load.S $(SRC_DIR)/isr_stubs.S \
+              $(SRC_DIR)/syscall_stub.S $(SRC_DIR)/user_mode.S
 
 ASM_OBJECTS = $(patsubst $(SRC_DIR)/%.S,$(BUILD_DIR)/%.o,$(ASM_SOURCES))
 
