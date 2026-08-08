@@ -1,5 +1,6 @@
 #include "interrupts.h"
 #include "pic.h"
+#include "keyboard.h"
 #include "scheduler.h"
 
 namespace {
@@ -54,6 +55,7 @@ extern "C" void irq_handler(InterruptFrame* frame) {
             break;
 
         case 33: // Tastatur (IRQ1) -> Platzhalter für späteren Treiber
+            keyboard_handle_irq();
             pic_send_eoi(1);
             break;
 
