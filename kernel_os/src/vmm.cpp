@@ -1,8 +1,8 @@
 #include "vmm.h"
 #include "pmm.h"
-
-// ------------------------------------------------------------
-// WICHTIGE VEREINFACHUNG für dieses Hobby-OS:
+-------------------------------------------------------
+// WICHTIGE VEREINFACHUNG fü
+// -----r dieses Hobby-OS:
 // Wir nehmen an, dass der komplette physische Speicher im Kernel
 // 1:1 (identity-mapped) oder über ein festes Offset gemappt ist,
 // sodass wir physische Adressen direkt als Zeiger dereferenzieren
