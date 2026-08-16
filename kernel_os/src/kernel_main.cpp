@@ -51,8 +51,8 @@ namespace {
 
     // Simple Busy-Wait-Verzögerung, rein für sichtbare Demo-Zwecke -
     // KEIN echter Timer, nur damit man den Wechsel mit bloßem Auge sieht.
-    void busy_delay(volatile uint64_t iterations) {
-        while (iterations--) {
+    void busy_delay(uint64_t iterations) {
+        while (iterations-- != 0) {
             asm volatile("nop");
         }
     }
@@ -118,13 +118,11 @@ extern "C" void kernel_main([[maybe_unused]] uint32_t multiboot_magic,
         scheduler_add_task(user_task);
     }
 
-    // Ersten Task manuell anschieben (current_task ist ja noch NULL) -
-    // ab jetzt übernimmt der Timer-Interrupt automatisch alle weiteren Switches.
-    scheduler_tick();
-
-    // Interrupts scharf schalten -> ab hier läuft der Timer und
-    // unterbricht/schaltet automatisch zwischen Tasks um (Preemption!).
+    // Interrupts scharf schalten, dann in den ersten Task wechseln.
+    // scheduler_start() muss den ersten Kontext tatsächlich laden; nur einen
+    // Task als "current" zu markieren würde den Kernel-Stack falsch sichern.
     asm volatile("sti");
+    scheduler_start();
 
     // Kernel-Idle-Loop: CPU anhalten, bis der nächste Interrupt kommt
     // (spart Strom, verglichen mit einer busy-loop).
