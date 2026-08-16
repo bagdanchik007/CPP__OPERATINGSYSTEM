@@ -40,11 +40,9 @@ extern "C" Task* task_create_kernel_thread(void (*entry_point)(), const char* na
     // Wir holen mehrere physische Seiten. Da wir (siehe vmm.cpp) im Kernel
     // von einem identity-mapped physischen Speicher ausgehen, können wir
     // die physische Adresse direkt als nutzbaren Stack-Pointer verwenden.
-    uintptr_t stack_base = pmm_alloc_page();
-    for (uint64_t i = 1; i < KERNEL_STACK_PAGES; i++) {
-        pmm_alloc_page(); // Für dieses einfache Beispiel gehen wir von
-                           // physisch aufeinanderfolgenden Seiten aus.
-                           // Produktionsreif: einzeln mappen statt annehmen!
+    uintptr_t stack_base = pmm_alloc_pages(KERNEL_STACK_PAGES);
+    if (stack_base == 0) {
+        return nullptr;
     }
     uintptr_t stack_top = stack_base + (KERNEL_STACK_PAGES * PAGE_SIZE);
 

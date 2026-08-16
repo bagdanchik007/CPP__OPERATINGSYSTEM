@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <stddef.h>
 
 // ============================================================
 // Process Control Block (PCB) / Task-Struktur
@@ -53,6 +54,9 @@ struct Task {
     // Optional: Name fürs Debugging
     char         name[32];
 };
+
+static_assert(offsetof(Task, saved_rsp) == 24,
+              "context_switch.S must use the Task::saved_rsp offset");
 
 extern "C" {
 
