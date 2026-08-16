@@ -112,7 +112,7 @@ extern "C" bool elf_load_from_ramfs(const char* name, ElfImage* image) {
 
     page_table_t* user_pml4 = reinterpret_cast<page_table_t*>(pml4_phys);
     page_table_t* kernel_pml4 = reinterpret_cast<page_table_t*>(current_address_space());
-    user_pml4->entries[0] = kernel_pml4->entries[0] | PTE_USER;
+    user_pml4->entries[0] = kernel_pml4->entries[0];
 
     const Elf64ProgramHeader* programs = reinterpret_cast<const Elf64ProgramHeader*>(
         data + header->program_header_offset);

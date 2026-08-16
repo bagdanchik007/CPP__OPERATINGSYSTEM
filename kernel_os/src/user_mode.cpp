@@ -5,7 +5,9 @@
 #include "vmm.h"
 
 namespace {
-    constexpr uintptr_t USER_CODE_ADDRESS = 0x40000000;
+    // Liegt außerhalb des beim Booten angelegten 1-GiB-Identity-Mappings.
+    // Dadurch kollidiert die feingranulare User-Abbildung nicht mit Huge-Pages.
+    constexpr uintptr_t USER_CODE_ADDRESS = 0x0000004000000000ULL;
     constexpr uintptr_t USER_STACK_ADDRESS = USER_CODE_ADDRESS + PAGE_SIZE;
 
     uintptr_t demo_entry_address = 0;
@@ -36,7 +38,7 @@ extern "C" bool user_mode_prepare_demo_task(Task* task) {
     // below lives in PDPT slot 1 (at 1 GiB), so it does not expose kernel pages.
     page_table_t* user_pml4 = reinterpret_cast<page_table_t*>(pml4_phys);
     page_table_t* kernel_pml4 = reinterpret_cast<page_table_t*>(current_address_space());
-    user_pml4->entries[0] = kernel_pml4->entries[0] | PTE_USER;
+    user_pml4->entries[0] = kernel_pml4->entries[0];
 
     uintptr_t program_phys = reinterpret_cast<uintptr_t>(user_program_start);
     uintptr_t program_page = program_phys & ~(PAGE_SIZE - 1);
