@@ -18,6 +18,10 @@ void scheduler_add_task(Task* task);
 // eigentlichen Kontextwechsel (context_switch) an.
 void scheduler_tick();
 
+// Startet den ersten wartenden Task. Kehrt erst zurück, wenn dieser Kontext
+// später wieder aktiv wird; vor dem Aufruf müssen Interrupts aktiviert sein.
+void scheduler_start();
+
 // Freiwilliger Wechsel: ein Task ruft das selbst auf, um die CPU
 // abzugeben, ohne auf den nächsten Timer-Interrupt zu warten. Nützlich
 // zum Testen, bevor Interrupts überhaupt aktiv sind, oder wenn ein Task

@@ -11,15 +11,18 @@ namespace {
     Task* current_task = nullptr; // Task, der GERADE auf der CPU läuft
     Task* ready_head    = nullptr; // Kopf der Ready-Queue
     Task* ready_tail    = nullptr; // Ende der Ready-Queue (für O(1) Einfügen)
+    uintptr_t kernel_pml4_phys = 0;
 }
 
 extern "C" void scheduler_init() {
     current_task = nullptr;
     ready_head   = nullptr;
     ready_tail   = nullptr;
+    asm volatile("mov %%cr3, %0" : "=r"(kernel_pml4_phys));
 }
 
 extern "C" void scheduler_add_task(Task* task) {
+    if (!task) return;
     task->state = TaskState::READY;
     task->next  = nullptr;
 
@@ -31,6 +34,25 @@ extern "C" void scheduler_add_task(Task* task) {
         ready_tail->next = task;
         ready_tail = task;
     }
+}
+
+extern "C" void scheduler_start() {
+    if (current_task || !ready_head) {
+        return;
+    }
+
+    Task* next_task = ready_head;
+    ready_head = ready_head->next;
+    if (!ready_head) ready_tail = nullptr;
+
+    next_task->next = nullptr;
+    next_task->state = TaskState::RUNNING;
+    current_task = next_task;
+    tss_set_kernel_stack(next_task->kernel_stack_top);
+    if (next_task->pml4_phys != 0) {
+        vmm_switch_address_space(next_task->pml4_phys);
+    }
+    context_switch(nullptr, next_task);
 }
 
 extern "C" Task* scheduler_current_task() {
@@ -79,9 +101,8 @@ extern "C" void scheduler_tick() {
 
     // Adressraum wechseln, FALLS der neue Task einen eigenen hat
     // (0 = teilt sich den Kernel-Adressraum, kein Wechsel nötig).
-    if (next_task->pml4_phys != 0) {
-        vmm_switch_address_space(next_task->pml4_phys);
-    }
+    vmm_switch_address_space(next_task->pml4_phys != 0 ?
+                             next_task->pml4_phys : kernel_pml4_phys);
 
     // Der eigentliche Register-Wechsel passiert hier in Assembly.
     context_switch(prev_task, next_task);
