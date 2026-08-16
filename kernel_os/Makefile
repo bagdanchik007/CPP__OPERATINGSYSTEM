@@ -5,14 +5,15 @@
 # für ein "richtiges" Setup später einen x86_64-elf-gcc Cross-Compiler
 # besorgen (siehe OSDev Wiki: "GCC Cross-Compiler").
 
-CXX      = g++
-AS       = g++
-LD       = ld
+CXX      ?= g++
+AS       ?= $(CXX)
+LD       ?= ld
 
 CXXFLAGS = -ffreestanding -fno-exceptions -fno-rtti -mno-red-zone \
            -mno-mmx -mno-sse -mno-sse2 -m64 -Wall -Wextra \
+           -Werror \
            -fno-pic -fno-pie -fno-stack-protector -fno-builtin \
-           -Iinclude -c
+           -Iinclude -MMD -MP -c
 
 ASFLAGS  = -c
 
@@ -27,25 +28,30 @@ ASM_SOURCES = $(SRC_DIR)/boot.S $(SRC_DIR)/context_switch.S \
               $(SRC_DIR)/gdt_flush.S $(SRC_DIR)/idt_load.S $(SRC_DIR)/isr_stubs.S \
               $(SRC_DIR)/syscall_stub.S $(SRC_DIR)/user_mode.S
 
-ASM_OBJECTS = $(patsubst $(SRC_DIR)/%.S,$(BUILD_DIR)/%.o,$(ASM_SOURCES))
+ASM_OBJECTS = $(patsubst $(SRC_DIR)/%.S,$(BUILD_DIR)/asm/%.o,$(ASM_SOURCES))
 
 OBJECTS = $(ASM_OBJECTS) \
-          $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(CPP_SOURCES))
+          $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/cpp/%.o,$(CPP_SOURCES))
+DEPS = $(OBJECTS:.o=.d)
 
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 ISO_FILE   = myos.iso
 
-.PHONY: all clean run iso
+.PHONY: all clean run iso kernel
 
 all: $(ISO_FILE)
+
+kernel: $(KERNEL_BIN)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.S | $(BUILD_DIR)
+$(BUILD_DIR)/asm/%.o: $(SRC_DIR)/%.S | $(BUILD_DIR)
+	mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+$(BUILD_DIR)/cpp/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+	mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $< -o $@
 
 $(KERNEL_BIN): $(OBJECTS)
@@ -64,3 +70,5 @@ run: $(ISO_FILE)
 
 clean:
 	rm -rf $(BUILD_DIR) $(ISO_DIR) $(ISO_FILE)
+
+-include $(DEPS)
