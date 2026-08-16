@@ -1,8 +1,6 @@
 #include "vmm.h"
 #include "pmm.h"
--------------------------------------------------------
-// WICHTIGE VEREINFACHUNG fü
-// -----r dieses Hobby-OS:
+// WICHTIGE VEREINFACHUNG für dieses Hobby-OS:
 // Wir nehmen an, dass der komplette physische Speicher im Kernel
 // 1:1 (identity-mapped) oder über ein festes Offset gemappt ist,
 // sodass wir physische Adressen direkt als Zeiger dereferenzieren
@@ -34,12 +32,22 @@ static page_table_t* get_or_create_table(page_table_t* table, uint64_t index, ui
     if (!(entry & PTE_PRESENT)) {
         // Noch keine Tabelle vorhanden -> neue physische Seite dafür holen
         uintptr_t new_table_phys = pmm_alloc_page();
+        if (new_table_phys == 0) {
+            return nullptr;
+        }
 
         // Neue Tabelle nullen (alle Einträge "not present")
         page_table_t* new_table = phys_to_virt(new_table_phys);
         for (int i = 0; i < 512; i++) new_table->entries[i] = 0;
 
-        entry = (new_table_phys & PTE_ADDR_MASK) | PTE_PRESENT | PTE_WRITABLE | flags;
+        entry = (new_table_phys & PTE_ADDR_MASK) | PTE_PRESENT | PTE_WRITABLE |
+                (flags & PTE_USER);
+    } else if (entry & PTE_HUGE) {
+        // Eine Huge-Page kann nicht als untergeordnete Seitentabelle dienen.
+        return nullptr;
+    } else if (flags & PTE_USER) {
+        // Das User-Bit muss auf jeder Zwischenebene gesetzt sein.
+        entry |= PTE_USER;
     }
 
     return phys_to_virt(entry & PTE_ADDR_MASK);
@@ -47,6 +55,9 @@ static page_table_t* get_or_create_table(page_table_t* table, uint64_t index, ui
 
 extern "C" uintptr_t vmm_create_address_space() {
     uintptr_t pml4_phys = pmm_alloc_page();
+    if (pml4_phys == 0) {
+        return 0;
+    }
     page_table_t* pml4 = phys_to_virt(pml4_phys);
     for (int i = 0; i < 512; i++) pml4->entries[i] = 0;
     return pml4_phys;
@@ -57,9 +68,13 @@ extern "C" void vmm_map_page(uintptr_t pml4_phys, uintptr_t virt_addr,
     VAddrIndices idx = split_vaddr(virt_addr);
 
     page_table_t* pml4 = phys_to_virt(pml4_phys);
-    page_table_t* pdpt = get_or_create_table(pml4, idx.pml4_i, PTE_USER);
-    page_table_t* pd   = get_or_create_table(pdpt, idx.pdpt_i, PTE_USER);
-    page_table_t* pt   = get_or_create_table(pd,   idx.pd_i,   PTE_USER);
+    uint64_t parent_flags = flags & PTE_USER;
+    page_table_t* pdpt = get_or_create_table(pml4, idx.pml4_i, parent_flags);
+    if (!pdpt) return;
+    page_table_t* pd = get_or_create_table(pdpt, idx.pdpt_i, parent_flags);
+    if (!pd) return;
+    page_table_t* pt = get_or_create_table(pd, idx.pd_i, parent_flags);
+    if (!pt) return;
 
     // Letzte Ebene: hier liegt die tatsächliche physische Adresse + Flags
     pt->entries[idx.pt_i] = (phys_addr & PTE_ADDR_MASK) | flags | PTE_PRESENT;
@@ -71,14 +86,17 @@ extern "C" void vmm_unmap_page(uintptr_t pml4_phys, uintptr_t virt_addr) {
 
     page_table_entry_t e1 = pml4->entries[idx.pml4_i];
     if (!(e1 & PTE_PRESENT)) return;
+    if (e1 & PTE_HUGE) return;
     page_table_t* pdpt = phys_to_virt(e1 & PTE_ADDR_MASK);
 
     page_table_entry_t e2 = pdpt->entries[idx.pdpt_i];
     if (!(e2 & PTE_PRESENT)) return;
+    if (e2 & PTE_HUGE) return;
     page_table_t* pd = phys_to_virt(e2 & PTE_ADDR_MASK);
 
     page_table_entry_t e3 = pd->entries[idx.pd_i];
     if (!(e3 & PTE_PRESENT)) return;
+    if (e3 & PTE_HUGE) return;
     page_table_t* pt = phys_to_virt(e3 & PTE_ADDR_MASK);
 
     pt->entries[idx.pt_i] = 0;
@@ -100,14 +118,21 @@ extern "C" uintptr_t vmm_translate(uintptr_t pml4_phys, uintptr_t virt_addr) {
 
     page_table_entry_t e1 = pml4->entries[idx.pml4_i];
     if (!(e1 & PTE_PRESENT)) return 0;
+    if (e1 & PTE_HUGE) return 0;
     page_table_t* pdpt = phys_to_virt(e1 & PTE_ADDR_MASK);
 
     page_table_entry_t e2 = pdpt->entries[idx.pdpt_i];
     if (!(e2 & PTE_PRESENT)) return 0;
+    if (e2 & PTE_HUGE) {
+        return (e2 & PTE_ADDR_MASK) | (virt_addr & ((1ULL << 30) - 1));
+    }
     page_table_t* pd = phys_to_virt(e2 & PTE_ADDR_MASK);
 
     page_table_entry_t e3 = pd->entries[idx.pd_i];
     if (!(e3 & PTE_PRESENT)) return 0;
+    if (e3 & PTE_HUGE) {
+        return (e3 & PTE_ADDR_MASK) | (virt_addr & ((1ULL << 21) - 1));
+    }
     page_table_t* pt = phys_to_virt(e3 & PTE_ADDR_MASK);
 
     page_table_entry_t e4 = pt->entries[idx.pt_i];
