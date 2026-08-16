@@ -38,11 +38,21 @@ extern "C" void pmm_init(uintptr_t bitmap_addr, uint64_t page_count) {
     // Die Bitmap selbst belegt physischen Speicher -> als reserviert markieren,
     // sonst würde sich der Allocator später selbst überschreiben!
     pmm_mark_reserved(bitmap_addr, bitmap_bytes);
+
+    // Physische Adresse 0 ist zugleich der Fehlerwert der Allokations-API und
+    // darf deshalb nie an Aufrufer ausgegeben werden.
+    pmm_mark_reserved(0, PAGE_SIZE);
 }
 
 extern "C" void pmm_mark_reserved(uintptr_t base_addr, uint64_t length_bytes) {
+    if (length_bytes == 0 || base_addr >= total_pages * PAGE_SIZE) {
+        return;
+    }
+
     uint64_t start_page = base_addr / PAGE_SIZE;
-    uint64_t end_page   = (base_addr + length_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+    uint64_t last_byte = length_bytes - 1;
+    uint64_t end_page = (last_byte > UINTPTR_MAX - base_addr) ? total_pages :
+                        (base_addr + last_byte) / PAGE_SIZE + 1;
 
     for (uint64_t page = start_page; page < end_page && page < total_pages; page++) {
         if (!test_bit(page)) {
@@ -67,13 +77,62 @@ extern "C" uintptr_t pmm_alloc_page() {
     return 0; // Out of memory
 }
 
+extern "C" uintptr_t pmm_alloc_pages(uint64_t count) {
+    if (count == 0 || count > total_pages) {
+        return 0;
+    }
+
+    uint64_t run_start = 0;
+    uint64_t run_length = 0;
+    for (uint64_t page = 0; page < total_pages; page++) {
+        if (test_bit(page)) {
+            run_length = 0;
+            continue;
+        }
+
+        if (run_length == 0) {
+            run_start = page;
+        }
+        if (++run_length != count) {
+            continue;
+        }
+
+        for (uint64_t allocated = run_start; allocated < run_start + count; allocated++) {
+            set_bit(allocated);
+        }
+        free_pages -= count;
+        search_hint = run_start + count;
+        return run_start * PAGE_SIZE;
+    }
+
+    return 0;
+}
+
 extern "C" void pmm_free_page(uintptr_t phys_addr) {
     uint64_t page = phys_addr / PAGE_SIZE;
-    if (page >= total_pages) return; // ungültige Adresse, defensiv abfangen
+    if (phys_addr % PAGE_SIZE != 0 || page == 0 || page >= total_pages) return;
 
     if (test_bit(page)) {
         clear_bit(page);
         free_pages++;
+    }
+}
+
+extern "C" void pmm_free_pages(uintptr_t phys_addr, uint64_t count) {
+    if (count == 0 || phys_addr % PAGE_SIZE != 0 || phys_addr == 0) {
+        return;
+    }
+
+    uint64_t start_page = phys_addr / PAGE_SIZE;
+    if (start_page >= total_pages || count > total_pages - start_page) {
+        return;
+    }
+
+    for (uint64_t page = start_page; page < start_page + count; page++) {
+        if (test_bit(page)) {
+            clear_bit(page);
+            free_pages++;
+        }
     }
 }
 

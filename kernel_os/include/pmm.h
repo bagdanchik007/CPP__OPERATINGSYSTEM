@@ -26,8 +26,15 @@ void pmm_mark_reserved(uintptr_t base_addr, uint64_t length_bytes);
 // Adresse zurück. Gibt 0 zurück, wenn kein Speicher mehr frei ist.
 uintptr_t pmm_alloc_page();
 
+// Reserviert count direkt aufeinanderfolgende physische Seiten. Gibt die
+// Basisadresse zurück oder 0, wenn kein passender Bereich verfügbar ist.
+uintptr_t pmm_alloc_pages(uint64_t count);
+
 // Gibt eine zuvor allozierte physische Seite wieder frei.
 void pmm_free_page(uintptr_t phys_addr);
+
+// Gibt einen zuvor mit pmm_alloc_pages() reservierten Bereich frei.
+void pmm_free_pages(uintptr_t phys_addr, uint64_t count);
 
 // Debug/Statistik
 uint64_t pmm_get_free_page_count();
