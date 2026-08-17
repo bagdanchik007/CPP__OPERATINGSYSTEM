@@ -1,4 +1,4 @@
-# Hobby x86_64 Kernel
+# 86x-64x-kernel 
 
 Ein monolithischer Betriebssystemkern für x86_64, geschrieben in freistehendem C++ und Assembly – von Boot-Prozess bis präemptivem Multitasking.
 
